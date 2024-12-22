@@ -38,33 +38,15 @@
         }
         .controls {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            justify-content: center;
             margin-bottom: 20px;
-            gap: 10px;
-            flex-wrap: wrap;
         }
         .date-input {
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 8px;
+            font-size: 16px;
             flex: 1;
-            min-width: 200px;
-            font-size: 16px;
-        }
-        .button {
-            padding: 10px 20px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            white-space: nowrap;
-            font-size: 16px;
-            transition: background-color 0.2s;
-        }
-        .button:hover {
-            background: #0056b3;
         }
         .moon-display {
             display: flex;
@@ -80,7 +62,6 @@
             height: 200px;
             background: #1a1a1a;
             border-radius: 50%;
-            padding: 0;
             margin-bottom: 15px;
         }
         .info {
@@ -115,12 +96,14 @@
         </div>
     </div>
     <script>
-        // Existing JavaScript Code
+        // 율리우스 날짜 계산
         function getJulianDate(date) {
             const time = date.getTime();
             const tzoffset = date.getTimezoneOffset();
             return (time / 86400000) - (tzoffset / 1440) + 2440587.5;
         }
+
+        // 정확한 달의 위상 계산 (천문학적 알고리즘)
         function getMoonPhase(date) {
             const JD = getJulianDate(date);
             const days = JD - 2451545.0;
@@ -129,36 +112,91 @@
             if (phase < 0) phase += 100;
             return phase;
         }
+
+        // 달 모양 SVG 생성
         function createMoonSVG(phase) {
             const cx = 50, cy = 50, r = 48;
+
             if (phase < 1 || phase > 99) {
                 return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#1a1a1a" stroke="#666" stroke-width="1"/>`;
             }
+
             if (Math.abs(phase - 50) < 1) {
                 return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#FDB813"/>`;
             }
+
             let d = '';
             const fade = phase > 50 ? (100 - phase) / 50 : phase / 50;
+
             if (phase <= 50) {
-                d = `M ${cx} ${cy-r} A ${r} ${r} 0 1 1 ${cx} ${cy+r} A ${r*fade} ${r} 0 0 0 ${cx} ${cy-r}`;
+                d = `M ${cx} ${cy-r} 
+                         A ${r} ${r} 0 1 1 ${cx} ${cy+r} 
+                         A ${r*fade} ${r} 0 0 0 ${cx} ${cy-r}`;
             } else {
-                d = `M ${cx} ${cy-r} A ${r} ${r} 0 1 0 ${cx} ${cy+r} A ${r*fade} ${r} 0 0 1 ${cx} ${cy-r}`;
+                d = `M ${cx} ${cy-r} 
+                         A ${r} ${r} 0 1 0 ${cx} ${cy+r} 
+                         A ${r*fade} ${r} 0 0 1 ${cx} ${cy-r}`;
             }
+
             return `<path d="${d}" fill="#FDB813"/>`;
         }
+
+        // 달의 위상 정보와 의미
         function getMoonPhaseInfo(phase) {
-            if (phase < 1) return { name: "삭 (New Moon) 🌑", meaning: "달이 보이지 않는 시기입니다. 새로운 시작을 준비할 때입니다." };
-            if (phase < 15) return { name: "초승달 🌒", meaning: "달이 처음 시작하는 시기입니다. 새로운 시작의 기운이 느껴지네요." };
-            if (phase < 35) return { name: "상현달 🌓", meaning: "달이 반달 모양으로 기분이 좋아지네요. 긍정적인 에너지가 가득합니다." };
-            if (phase < 45) return { name: "만상 🌔", meaning: "보름달이 다가오고 있습니다. 기대감이 커지는 시기입니다." };
-            if (phase > 45 && phase < 55) return { name: "망 (Full Moon) 🌕", meaning: "달이 가장 매력적인 보름달입니다. 풍요와 충만함이 느껴지는 시기입니다." };
-            if (phase < 65) return { name: "만하 🌖", meaning: "보름달의 여운이 남아있는 시기입니다. 감사함을 느껴보세요." };
-            if (phase < 85) return { name: "하현달 🌗", meaning: "달이 반달 모양으로 왼쪽이 밝은 시기입니다. 지나온 날들을 돌아보세요." };
-            return { name: "그믐달 🌘", meaning: "달이 사라지는 시기입니다. 마무리와 정리의 시간을 가져보세요." };
+            if (phase <= 1 || phase >= 99) {
+                return {
+                    name: "삭 (New Moon) 🌑",
+                    meaning: "달이 보이지 않는 시기입니다. 새로운 시작을 준비할 때입니다."
+                };
+            }
+            if (phase < 15) {
+                return {
+                    name: "초승달 🌒",
+                    meaning: "달이 처음 시작하는 시기입니다. 새로운 시작의 기운이 느껴지네요."
+                };
+            }
+            if (phase < 35) {
+                return {
+                    name: "상현달 🌓",
+                    meaning: "달이 반달 모양으로 기분이 좋아지네요. 긍정적인 에너지가 가득합니다."
+                };
+            }
+            if (phase < 45) {
+                return {
+                    name: "만상 🌔",
+                    meaning: "보름달이 다가오고 있습니다. 기대감이 커지는 시기입니다."
+                };
+            }
+            if (phase >= 45 && phase <= 55) {
+                return {
+                    name: "망 (Full Moon) 🌕",
+                    meaning: "달이 가장 매력적인 보름달입니다. 풍요와 충만함이 느껴지는 시기입니다."
+                };
+            }
+            if (phase < 65) {
+                return {
+                    name: "만하 🌖",
+                    meaning: "보름달의 여운이 남아있는 시기입니다. 감사함을 느껴보세요."
+                };
+            }
+            if (phase < 85) {
+                return {
+                    name: "하현달 🌗",
+                    meaning: "달이 반달 모양으로 왼쪽이 밝은 시기입니다. 지나온 날들을 돌아보세요."
+                };
+            }
+            return {
+                name: "그믐달 🌘",
+                meaning: "달이 사라지는 시기입니다. 마무리와 정리의 시간을 가져보세요."
+            };
         }
+
+        // UI 업데이트 함수
         function updateUI(date) {
             const phase = getMoonPhase(date);
             const phaseInfo = getMoonPhaseInfo(phase);
+
+            // SVG 업데이트
             document.getElementById('moonSVG').innerHTML = createMoonSVG(phase);
             document.getElementById('phaseText').textContent = phaseInfo.name;
             document.getElementById('dateText').textContent = date.toLocaleDateString('ko-KR', {
@@ -169,9 +207,12 @@
             });
             document.getElementById('moonMeaning').textContent = phaseInfo.meaning;
         }
+
+        // 페이지 로드 시 초기화
         const dateSelector = document.getElementById('dateSelector');
         dateSelector.valueAsDate = new Date();
         updateUI(new Date());
+
         dateSelector.addEventListener('change', (e) => {
             const date = new Date(e.target.value);
             updateUI(date);
