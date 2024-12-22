@@ -11,6 +11,7 @@
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
@@ -18,6 +19,7 @@
             background-color: #f5f5f5;
             line-height: 1.6;
         }
+
         .container {
             max-width: 800px;
             margin: 0 auto;
@@ -26,28 +28,53 @@
             border-radius: 12px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+
         .header {
             text-align: center;
             margin-bottom: 20px;
             padding-bottom: 15px;
             border-bottom: 2px solid #f0f0f0;
         }
+
         .header h1 {
             color: #2c3e50;
             font-size: 24px;
         }
+
         .controls {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
+            gap: 10px;
+            flex-wrap: wrap;
         }
+
         .date-input {
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 8px;
-            font-size: 16px;
             flex: 1;
+            min-width: 200px;
+            font-size: 16px;
         }
+
+        .button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+
+        .button:hover {
+            background: #0056b3;
+        }
+
         .moon-display {
             display: flex;
             flex-direction: column;
@@ -57,17 +84,30 @@
             background: #f8f9fa;
             border-radius: 12px;
         }
+
         .moon-svg {
             width: 200px;
             height: 200px;
             background: #1a1a1a;
             border-radius: 50%;
+            padding: 0;
             margin-bottom: 15px;
         }
+
+        .moon-svg-small {
+            width: 50px;
+            height: 50px;
+            background: #1a1a1a;
+            border-radius: 50%;
+            padding: 0;
+            margin: 10px auto;
+        }
+
         .info {
             text-align: center;
             margin-top: 15px;
         }
+
         .moon-meaning {
             margin-top: 15px;
             padding: 15px;
@@ -76,6 +116,109 @@
             color: #1565c0;
             font-size: 0.95em;
         }
+
+        .month-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .day-card {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .current-date {
+            background: #e3f2fd;
+        }
+
+        .location-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .observation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .compass {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            position: relative;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            background: white;
+        }
+
+        .compass-marker {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #FDB813;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+
+        .observation-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .status-good {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .status-medium {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-poor {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+            }
+            .date-input {
+                width: 100%;
+            }
+            .moon-svg {
+                width: 150px;
+                height: 150px;
+            }
+            .observation-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -83,10 +226,13 @@
         <div class="header">
             <h1>달의 모양 관찰하기</h1>
         </div>
+        
         <div class="controls">
             <input type="date" id="dateSelector" class="date-input">
+            <button id="viewToggle" class="button">월간 보기</button>
         </div>
-        <div class="moon-display">
+
+        <div id="dailyView" class="moon-display">
             <svg id="moonSVG" class="moon-svg" viewBox="0 0 100 100"></svg>
             <div class="info">
                 <h2 id="phaseText"></h2>
@@ -94,8 +240,36 @@
                 <div id="moonMeaning" class="moon-meaning"></div>
             </div>
         </div>
+
+        <div class="location-info">
+            <h3>관측 정보</h3>
+            <div id="locationStatus">위치 정보를 가져오는 중...</div>
+            
+            <div class="observation-grid">
+                <div class="info-card">
+                    <h3>달 출몰 시간</h3>
+                    <div id="moonTimes"></div>
+                </div>
+                
+                <div class="info-card">
+                    <h3>현재 달 위치</h3>
+                    <div id="moonPosition"></div>
+                    <div class="compass" id="moonCompass">
+                        <div class="compass-marker" id="moonMarker"></div>
+                        <div id="compassDirections"></div>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <h3>관측 조건</h3>
+                    <div id="observationConditions"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="monthView" class="month-view" style="display: none"></div>
     </div>
-    <script>
+<script>
         // 율리우스 날짜 계산
         function getJulianDate(date) {
             const time = date.getTime();
@@ -113,6 +287,43 @@
             return phase;
         }
 
+        // 달의 위치 계산
+        function calculateMoonPosition(lat, lon, date) {
+            const JD = getJulianDate(date);
+            const T = (JD - 2451545.0) / 36525;
+            
+            // 달의 평균 황경
+            const L = 218.3164477 + 481267.88123421 * T;
+            // 달의 평균 근점각
+            const M = 134.9634114 + 477198.8676313 * T;
+            // 달의 승교점 평균 황경
+            const F = 93.2720993 + 483202.0175273 * T;
+
+            const altitude = 90 - lat + (Math.sin(L * Math.PI/180) * 5.145396);
+            const azimuth = ((Math.atan2(Math.sin(L * Math.PI/180) * Math.cos(lat * Math.PI/180),
+                            Math.cos(L * Math.PI/180)) * 180/Math.PI) + 360) % 360;
+
+            return { altitude, azimuth };
+        }
+
+        // 달 출몰 시간 계산
+        function calculateMoonTimes(lat, lon, date) {
+            // 간단한 근사치 계산
+            const baseRise = new Date(date);
+            const baseSet = new Date(date);
+            
+            // 위도에 따른 시간 조정
+            const latOffset = (lat - 35) * 4; // 위도 35도 기준으로 보정
+            
+            baseRise.setHours(18 - (latOffset / 60), 0, 0, 0);
+            baseSet.setHours(6 + (latOffset / 60), 0, 0, 0);
+
+            return {
+                rise: baseRise.toLocaleTimeString(),
+                set: baseSet.toLocaleTimeString()
+            };
+        }
+
         // 달 모양 SVG 생성
         function createMoonSVG(phase) {
             const cx = 50, cy = 50, r = 48;
@@ -120,7 +331,7 @@
             if (phase < 1 || phase > 99) {
                 return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#1a1a1a" stroke="#666" stroke-width="1"/>`;
             }
-
+            
             if (Math.abs(phase - 50) < 1) {
                 return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#FDB813"/>`;
             }
@@ -129,13 +340,13 @@
             const fade = phase > 50 ? (100 - phase) / 50 : phase / 50;
 
             if (phase <= 50) {
-                d = `M ${cx} ${cy-r} 
-                         A ${r} ${r} 0 1 1 ${cx} ${cy+r} 
-                         A ${r*fade} ${r} 0 0 0 ${cx} ${cy-r}`;
+                d = `M ${cx} ${cy-r}
+                     A ${r} ${r} 0 1 1 ${cx} ${cy+r}
+                     A ${r*fade} ${r} 0 0 0 ${cx} ${cy-r}`;
             } else {
-                d = `M ${cx} ${cy-r} 
-                         A ${r} ${r} 0 1 0 ${cx} ${cy+r} 
-                         A ${r*fade} ${r} 0 0 1 ${cx} ${cy-r}`;
+                d = `M ${cx} ${cy-r}
+                     A ${r} ${r} 0 1 0 ${cx} ${cy+r}
+                     A ${r*fade} ${r} 0 0 1 ${cx} ${cy-r}`;
             }
 
             return `<path d="${d}" fill="#FDB813"/>`;
@@ -143,7 +354,7 @@
 
         // 달의 위상 정보와 의미
         function getMoonPhaseInfo(phase) {
-            if (phase <= 1 || phase >= 99) {
+            if (phase < 1) {
                 return {
                     name: "삭 (New Moon) 🌑",
                     meaning: "달이 보이지 않는 시기입니다. 새로운 시작을 준비할 때입니다."
@@ -167,7 +378,7 @@
                     meaning: "보름달이 다가오고 있습니다. 기대감이 커지는 시기입니다."
                 };
             }
-            if (phase >= 45 && phase <= 55) {
+            if (phase > 45 && phase < 55) {
                 return {
                     name: "망 (Full Moon) 🌕",
                     meaning: "달이 가장 매력적인 보름달입니다. 풍요와 충만함이 느껴지는 시기입니다."
@@ -185,10 +396,24 @@
                     meaning: "달이 반달 모양으로 왼쪽이 밝은 시기입니다. 지나온 날들을 돌아보세요."
                 };
             }
+            if (phase < 95) {
+                return {
+                    name: "그믐달 🌘",
+                    meaning: "달이 사라지는 시기입니다. 마무리와 정리의 시간을 가져보세요."
+                };
+            }
             return {
-                name: "그믐달 🌘",
-                meaning: "달이 사라지는 시기입니다. 마무리와 정리의 시간을 가져보세요."
+                name: "삭 (New Moon) 🌑",
+                meaning: "달이 보이지 않는 시기입니다. 새로운 시작을 준비할 때입니다."
             };
+        }
+
+        // 관측 조건 평가
+        function evaluateObservationConditions(altitude) {
+            if (altitude < 0) return { status: 'poor', message: '관측 불가' };
+            if (altitude > 40) return { status: 'good', message: '매우 좋음' };
+            if (altitude > 20) return { status: 'medium', message: '양호' };
+            return { status: 'poor', message: '나쁨' };
         }
 
         // UI 업데이트 함수
@@ -206,9 +431,112 @@
                 weekday: 'long'
             });
             document.getElementById('moonMeaning').textContent = phaseInfo.meaning;
+
+            // 위치 정보가 있다면 관측 정보도 업데이트
+            if (currentLocation) {
+                updateLocationBasedInfo(currentLocation.latitude, currentLocation.longitude, date);
+            }
         }
 
-        // 페이지 로드 시 초기화
+        // 위치 기반 정보 업데이트
+        let currentLocation = null;
+        function updateLocationBasedInfo(lat, lon, date) {
+            const moonPos = calculateMoonPosition(lat, lon, date);
+            const moonTimes = calculateMoonTimes(lat, lon, date);
+            const conditions = evaluateObservationConditions(moonPos.altitude);
+
+            // 달 위치 정보 업데이트
+            document.getElementById('moonPosition').innerHTML = `
+                <div>방위각: ${moonPos.azimuth.toFixed(1)}°</div>
+                <div>고도: ${moonPos.altitude.toFixed(1)}°</div>
+            `;
+
+            // 컴파스 마커 업데이트
+            const marker = document.getElementById('moonMarker');
+            const radius = 90;
+            const x = 100 + radius * Math.sin(moonPos.azimuth * Math.PI / 180);
+            const y = 100 - radius * Math.cos(moonPos.azimuth * Math.PI / 180);
+            marker.style.left = `${x}px`;
+            marker.style.top = `${y}px`;
+
+            // 출몰 시간 업데이트
+            document.getElementById('moonTimes').innerHTML = `
+                <div>달 출: ${moonTimes.rise}</div>
+                <div>달 몰: ${moonTimes.set}</div>
+            `;
+
+            // 관측 조건 업데이트
+            document.getElementById('observationConditions').innerHTML = `
+                <div>고도: ${moonPos.altitude.toFixed(1)}°</div>
+                <div class="observation-status status-${conditions.status}">
+                    관측 조건: ${conditions.message}
+                </div>
+            `;
+        }
+
+        // 위치 정보 초기화
+        function initLocationFeatures() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        currentLocation = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude
+                        };
+                        document.getElementById('locationStatus').textContent = 
+                            `현재 위치: ${currentLocation.latitude.toFixed(4)}°, ${currentLocation.longitude.toFixed(4)}°`;
+                        updateLocationBasedInfo(currentLocation.latitude, currentLocation.longitude, new Date());
+                    },
+                    error => {
+                        console.log("위치 정보 오류:", error);
+                        currentLocation = { latitude: 37.5665, longitude: 126.9780 }; // 서울 좌표
+                        document.getElementById('locationStatus').textContent = 
+                            "위치 정보를 가져올 수 없어 서울 기준으로 표시합니다.";
+                        updateLocationBasedInfo(currentLocation.latitude, currentLocation.longitude, new Date());
+                    }
+                );
+            }
+        }
+
+        // 월간 뷰 생성
+        function createMonthView(year, month) {
+            const monthView = document.getElementById('monthView');
+            monthView.innerHTML = '';
+
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            
+            for (let day = 1; day <= lastDay; day++) {
+                const date = new Date(year, month, day);
+                const phase = getMoonPhase(date);
+                const phaseInfo = getMoonPhaseInfo(phase);
+
+                const dayCard = document.createElement('div');
+                dayCard.className = 'day-card';
+                
+                if (date.toDateString() === today.toDateString()) {
+                    dayCard.classList.add('current-date');
+                }
+
+                dayCard.innerHTML = `
+                    <div>${date.toLocaleDateString('ko-KR', {
+                        month: 'long',
+                        day: 'numeric'
+                    })}</div>
+                    <div>${date.toLocaleDateString('ko-KR', {
+                        weekday: 'short'
+                    })}</div>
+                    <svg class="moon-svg-small" viewBox="0 0 100 100">
+                        ${createMoonSVG(phase)}
+                    </svg>
+                    <div>${phaseInfo.name}</div>
+                    <div class="moon-meaning">${phaseInfo.meaning}</div>
+                `;
+                monthView.appendChild(dayCard);
+            }
+        }
+
+        // 이벤트 리스너 설정
         const dateSelector = document.getElementById('dateSelector');
         dateSelector.valueAsDate = new Date();
         updateUI(new Date());
@@ -216,7 +544,35 @@
         dateSelector.addEventListener('change', (e) => {
             const date = new Date(e.target.value);
             updateUI(date);
+            if (document.getElementById('monthView').style.display !== 'none') {
+                createMonthView(date.getFullYear(), date.getMonth());
+            }
         });
+
+        document.getElementById('viewToggle').addEventListener('click', (e) => {
+            const monthView = document.getElementById('monthView');
+            const dailyView = document.getElementById('dailyView');
+            const isMonthView = monthView.style.display === 'none';
+            
+            monthView.style.display = isMonthView ? 'grid' : 'none';
+            dailyView.style.display = isMonthView ? 'none' : 'flex';
+            e.target.textContent = isMonthView ? '일간 보기' : '월간 보기';
+
+            if (isMonthView) {
+                const date = new Date(dateSelector.value);
+                createMonthView(date.getFullYear(), date.getMonth());
+            }
+        });
+
+        // 페이지 로드 시 초기화
+        initLocationFeatures();
+        
+        // 1분마다 위치 정보 업데이트
+        setInterval(() => {
+            if (currentLocation) {
+                updateLocationBasedInfo(currentLocation.latitude, currentLocation.longitude, new Date());
+            }
+        }, 60000);
     </script>
 </body>
 </html>
