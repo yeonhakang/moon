@@ -76,6 +76,11 @@
             border-radius: 8px;
             text-align: center;
         }
+        .date-input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
         @media (max-width: 600px) {
             .controls {
                 flex-direction: column;
@@ -173,10 +178,21 @@
 
         // 음력 날짜 계산 (간단한 근사치)
         function getLunarDate(date) {
-            const offset = Math.floor(date.getDate() * 0.97);
+            // 음력은 대략 양력보다 11일 느림 (매우 단순화된 계산)
+            const offset = date.getDate() - 11;
+            const month = date.getMonth() + 1;
+            let lunarMonth = month;
+            let lunarDay = offset;
+
+            if (offset < 1) {
+                lunarMonth = month - 1;
+                if (lunarMonth < 1) lunarMonth = 12;
+                lunarDay = 30 + offset; // 이전 달의 마지막 날부터 계산
+            }
+
             return {
-                month: date.getMonth() + 1,
-                day: offset
+                month: lunarMonth,
+                day: lunarDay > 0 ? lunarDay : 1
             };
         }
 
@@ -201,7 +217,11 @@
             const monthView = document.getElementById('monthView');
             monthView.innerHTML = '';
 
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            // 해당 월의 첫 날
+            const firstDay = new Date(year, month, 1);
+            // 해당 월의 마지막 날
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
             
             for (let day = 1; day <= daysInMonth; day++) {
                 const date = new Date(year, month, day);
