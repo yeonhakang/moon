@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>달의 모양 관찰하기</title>
     <style>
-        /* 이전 스타일은 유지하고 새로운 스타일 추가 */
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
@@ -20,184 +19,236 @@
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        /* ... (이전 스타일 유지) ... */
-        
-        /* 새로운 스타일 */
-        .astro-info {
-            background: #f0f8ff;
-            padding: 15px;
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .moon-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
             border-radius: 8px;
+        }
+        .moon-svg {
+            width: 200px;
+            height: 200px;
+            margin-bottom: 15px;
+            padding: 20px;
+        }
+        .moon-svg-small {
+            width: 50px;
+            height: 50px;
+            margin: 10px auto;
+            padding: 5px;
+        }
+        .info {
+            text-align: center;
+        }
+        .button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .month-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
             margin-top: 20px;
         }
-        .astro-info h3 {
-            color: #2c5282;
-            margin-top: 0;
-        }
-        .time-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 10px;
-        }
-        .time-card {
-            background: white;
+        .day-card {
             padding: 10px;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
         }
-        .highlight {
-            color: #2c5282;
-            font-weight: bold;
-        }
-        .location-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-            padding: 8px;
-            background: #e2e8f0;
-            border-radius: 4px;
-        }
-        .events-list {
-            margin-top: 15px;
-            padding: 10px;
-            background: white;
-            border-radius: 6px;
-        }
-        .event-item {
-            margin: 8px 0;
-            padding: 8px;
-            background: #f7fafc;
-            border-radius: 4px;
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .moon-svg {
+                width: 150px;
+                height: 150px;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- 기존 HTML 구조 유지 -->
     <div class="container">
-        <!-- ... (기존 헤더와 컨트롤) ... -->
-
-        <!-- 천문 정보 섹션 추가 -->
-        <div class="astro-info">
-            <div class="location-info">
-                <div id="locationStatus">위치 정보 가져오는 중...</div>
-            </div>
-            
-            <div class="time-info">
-                <div class="time-card">
-                    <h3>달 출몰 시각</h3>
-                    <div id="moonTimes"></div>
-                </div>
-                <div class="time-card">
-                    <h3>관측 가능 시간</h3>
-                    <div id="observationTime"></div>
-                </div>
-            </div>
-
-            <div class="events-list">
-                <h3>다가오는 천문 현상</h3>
-                <div id="upcomingEvents"></div>
+        <div class="header">
+            <h1>달의 모양 관찰하기</h1>
+        </div>
+        <div class="controls">
+            <input type="date" id="dateSelector" class="date-input">
+            <button id="viewToggle" class="button">월간 보기</button>
+        </div>
+        <div id="dailyView" class="moon-display">
+            <svg id="moonSVG" class="moon-svg" viewBox="0 0 100 100"></svg>
+            <div class="info">
+                <h2 id="phaseText"></h2>
+                <p id="dateText"></p>
+                <p id="lunarDate"></p>
             </div>
         </div>
-
-        <!-- ... (기존 달 표시 섹션) ... -->
+        <div id="monthView" class="month-view" style="display: none">
+            <!-- 월간 뷰는 자바스크립트로 생성됩니다 -->
+        </div>
     </div>
 
     <script>
-        // 기존 JavaScript 코드 유지
-        
-        // 새로운 천문 계산 함수들 추가
-        function calculateMoonTimes(date, lat, lon) {
-            // 실제로는 더 복잡한 천문 계산이 필요합니다
-            // 여기서는 간단한 예시로 구현
-            const sunrise = new Date(date);
-            sunrise.setHours(6, 0, 0);
-            const sunset = new Date(date);
-            sunset.setHours(18, 0, 0);
+        // 달의 위상 계산 함수
+        function getMoonPhase(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
             
-            return {
-                moonrise: sunrise,
-                moonset: sunset,
-                optimal: "20:00 - 22:00"
-            };
-        }
-
-        function getNextFullMoon(currentDate) {
-            // 다음 보름달 날짜 계산 (간단한 근사치)
-            const currentPhase = getMoonPhase(currentDate);
-            const daysUntilFull = (50 - currentPhase) / (100/29.5);
-            const nextFull = new Date(currentDate);
-            nextFull.setDate(nextFull.getDate() + Math.ceil(daysUntilFull));
-            return nextFull;
-        }
-
-        function getNextLunarEclipse() {
-            // 다음 월식 날짜 (실제 데이터는 천문 API나 데이터베이스 필요)
-            return new Date("2024-09-18");
-        }
-
-        // 위치 정보 및 천문 정보 업데이트
-        function updateAstronomicalInfo(position) {
-            const { latitude, longitude } = position.coords;
-            const locationStatus = document.getElementById('locationStatus');
-            locationStatus.textContent = `현재 위치: 위도 ${latitude.toFixed(2)}°, 경도 ${longitude.toFixed(2)}°`;
-
-            const today = new Date();
-            const moonTimes = calculateMoonTimes(today, latitude, longitude);
+            const jd = (367 * year) - Math.floor((7 * (year + Math.floor((month + 9) / 12))) / 4) + 
+                      Math.floor((275 * month) / 9) + day - 730530;
             
-            const moonTimesDiv = document.getElementById('moonTimes');
-            moonTimesDiv.innerHTML = `
-                달 출: ${moonTimes.moonrise.toLocaleTimeString('ko-KR')}
-                <br>
-                달 몰: ${moonTimes.moonset.toLocaleTimeString('ko-KR')}
-            `;
-
-            const observationTimeDiv = document.getElementById('observationTime');
-            observationTimeDiv.innerHTML = `
-                최적 관측 시간: ${moonTimes.optimal}
-            `;
-
-            const nextFullMoon = getNextFullMoon(today);
-            const nextEclipse = getNextLunarEclipse();
-
-            const upcomingEventsDiv = document.getElementById('upcomingEvents');
-            upcomingEventsDiv.innerHTML = `
-                <div class="event-item">
-                    다음 보름달: ${nextFullMoon.toLocaleDateString('ko-KR')}
-                </div>
-                <div class="event-item">
-                    다음 월식: ${nextEclipse.toLocaleDateString('ko-KR')}
-                </div>
-            `;
+            return ((jd % 29.5) / 29.5) * 100;
         }
 
-        // 위치 정보 요청
-        function requestLocation() {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    updateAstronomicalInfo,
-                    (error) => {
-                        const locationStatus = document.getElementById('locationStatus');
-                        locationStatus.textContent = "위치 정보를 가져올 수 없습니다. 기본 값으로 표시됩니다.";
-                        // 서울 기준으로 기본 정보 표시
-                        updateAstronomicalInfo({
-                            coords: {
-                                latitude: 37.5665,
-                                longitude: 126.9780
-                            }
-                        });
-                    }
-                );
+        // 달 모양 SVG 생성
+        function createMoonSVG(phase) {
+            let svg = '';
+            const centerX = 50;
+            const radius = 40;
+
+            if (phase < 5 || phase > 95) {
+                // 삭 - 보이지 않음
+                return '<circle cx="50" cy="50" r="40" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="5,5"/>';
+            } else if (phase === 50) {
+                // 보름달 - 완전한 원
+                return '<circle cx="50" cy="50" r="40" fill="#FDB813"/>';
+            } else if (phase < 50) {
+                // 초승달에서 상현달까지
+                const width = radius * (phase / 50);
+                return `
+                    <path d="
+                        M ${centerX},${50-radius}
+                        A ${radius},${radius} 0 0,1 ${centerX},${50+radius}
+                        A ${width},${radius} 0 0,0 ${centerX},${50-radius}
+                        Z
+                    " fill="#FDB813"/>
+                `;
             } else {
-                const locationStatus = document.getElementById('locationStatus');
-                locationStatus.textContent = "위치 정보가 지원되지 않는 브라우저입니다.";
+                // 하현달에서 그믐달까지
+                const width = radius * ((100 - phase) / 50);
+                return `
+                    <path d="
+                        M ${centerX},${50-radius}
+                        A ${radius},${radius} 0 0,0 ${centerX},${50+radius}
+                        A ${width},${radius} 0 0,1 ${centerX},${50-radius}
+                        Z
+                    " fill="#FDB813"/>
+                `;
             }
         }
 
-        // 페이지 로드 시 위치 정보 요청
-        requestLocation();
+        // 달의 위상 설명
+        function getMoonPhaseDescription(phase) {
+            if (phase < 5) return "삭 (New Moon)";
+            if (phase < 25) return "초승달";
+            if (phase < 45) return "상현달";
+            if (phase < 55) return "보름달 (Full Moon)";
+            if (phase < 75) return "하현달";
+            if (phase < 95) return "그믐달";
+            return "삭 (New Moon)";
+        }
 
-        // 이전 이벤트 리스너들 유지
+        // 음력 날짜 계산 (간단한 근사치)
+        function getLunarDate(date) {
+            const offset = Math.floor(date.getDate() * 0.97);
+            return {
+                month: date.getMonth() + 1,
+                day: offset
+            };
+        }
+
+        // UI 업데이트
+        function updateUI(date) {
+            const phase = getMoonPhase(date);
+            const description = getMoonPhaseDescription(phase);
+            const lunar = getLunarDate(date);
+
+            document.getElementById('moonSVG').innerHTML = createMoonSVG(phase);
+            document.getElementById('phaseText').textContent = description;
+            document.getElementById('dateText').textContent = date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            document.getElementById('lunarDate').textContent = `음력: ${lunar.month}월 ${lunar.day}일`;
+        }
+
+        // 월간 뷰 생성
+        function createMonthView(year, month) {
+            const monthView = document.getElementById('monthView');
+            monthView.innerHTML = '';
+
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const phase = getMoonPhase(date);
+                const description = getMoonPhaseDescription(phase);
+                const lunar = getLunarDate(date);
+
+                const dayCard = document.createElement('div');
+                dayCard.className = 'day-card';
+                dayCard.innerHTML = `
+                    <div>${date.getDate()}일</div>
+                    <div>음력 ${lunar.month}월 ${lunar.day}일</div>
+                    <svg class="moon-svg-small" viewBox="0 0 100 100">
+                        ${createMoonSVG(phase)}
+                    </svg>
+                    <div>${description}</div>
+                `;
+                monthView.appendChild(dayCard);
+            }
+        }
+
+        // 이벤트 리스너 설정
+        document.getElementById('dateSelector').valueAsDate = new Date();
+        updateUI(new Date());
+
+        document.getElementById('dateSelector').addEventListener('change', (e) => {
+            const date = new Date(e.target.value);
+            updateUI(date);
+            if (document.getElementById('monthView').style.display !== 'none') {
+                createMonthView(date.getFullYear(), date.getMonth());
+            }
+        });
+
+        document.getElementById('viewToggle').addEventListener('click', (e) => {
+            const monthView = document.getElementById('monthView');
+            const dailyView = document.getElementById('dailyView');
+            const isMonthView = monthView.style.display === 'none';
+            
+            monthView.style.display = isMonthView ? 'grid' : 'none';
+            dailyView.style.display = isMonthView ? 'none' : 'flex';
+            e.target.textContent = isMonthView ? '일간 보기' : '월간 보기';
+
+            if (isMonthView) {
+                const date = new Date(document.getElementById('dateSelector').value);
+                createMonthView(date.getFullYear(), date.getMonth());
+            }
+        });
     </script>
 </body>
 </html>
