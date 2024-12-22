@@ -84,12 +84,16 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         .date-input {
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 8px;
             flex: 1;
+        }
+        .current-date {
+            background: #e3f2fd;
         }
         @media (max-width: 600px) {
             .controls {
@@ -119,7 +123,6 @@
             <div class="info">
                 <h2 id="phaseText"></h2>
                 <p id="dateText"></p>
-                <p id="lunarDate"></p>
             </div>
         </div>
         <div id="monthView" class="month-view" style="display: none"></div>
@@ -136,27 +139,17 @@
         // 정확한 달의 위상 계산 (천문학적 알고리즘)
         function getMoonPhase(date) {
             const JD = getJulianDate(date);
-            
-            // 2000년 1월 1일부터의 일수
             const days = JD - 2451545.0;
-            
-            // 달의 공전 주기(시노딕 주기)는 29.530589일
-            const lunations = 29.530589;
-            
-            // 마지막 삭(New Moon)으로부터의 위상
+            const lunations = 29.530588861; // 정확한 삭망월 주기
             let phase = ((days % lunations) / lunations) * 100;
-            
-            // 음수 위상 처리
             if (phase < 0) phase += 100;
-            
             return phase;
         }
 
-        // 달 모양 SVG 생성 (정확한 형태)
+        // 달 모양 SVG 생성
         function createMoonSVG(phase) {
             const cx = 50, cy = 50, r = 48;
 
-            // 위상에 따른 달 모양 계산
             if (phase < 1 || phase > 99) {
                 // 삭 (New Moon)
                 return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#1a1a1a" stroke="#666" stroke-width="1"/>`;
@@ -170,7 +163,6 @@
             let d = '';
             const sweep = phase > 50 ? 1 : 0;
             const fade = phase > 50 ? (100 - phase) / 50 : phase / 50;
-            const x = cx + r * Math.cos((1 - fade) * Math.PI);
 
             if (phase <= 50) {
                 // 초승달에서 상현달까지
@@ -189,13 +181,13 @@
 
         // 달의 위상 설명
         function getMoonPhaseDescription(phase) {
-            if (phase < 1) return "삭 (New Moon)";
+            if (phase < 1) return "삭 (New Moon) 🌑";
             if (phase < 25) return "초승달 🌒";
             if (phase < 45) return "상현달 🌓";
             if (phase < 55) return "보름달 🌕";
             if (phase < 75) return "하현달 🌗";
             if (phase < 99) return "그믐달 🌘";
-            return "삭 (New Moon)";
+            return "삭 (New Moon) 🌑";
         }
 
         // UI 업데이트
@@ -208,7 +200,8 @@
             document.getElementById('dateText').textContent = date.toLocaleDateString('ko-KR', {
                 year: 'numeric',
                 month: 'long',
-                day: 'numeric'
+                day: 'numeric',
+                weekday: 'long'
             });
         }
 
@@ -217,8 +210,11 @@
             const monthView = document.getElementById('monthView');
             monthView.innerHTML = '';
 
+            // 해당 월의 실제 마지막 날짜를 구합니다
             const lastDay = new Date(year, month + 1, 0).getDate();
-
+            const today = new Date();
+            
+            // 날짜별 카드 생성
             for (let day = 1; day <= lastDay; day++) {
                 const date = new Date(year, month, day);
                 const phase = getMoonPhase(date);
@@ -226,8 +222,20 @@
 
                 const dayCard = document.createElement('div');
                 dayCard.className = 'day-card';
+                
+                // 오늘 날짜 강조
+                if (date.toDateString() === today.toDateString()) {
+                    dayCard.classList.add('current-date');
+                }
+
                 dayCard.innerHTML = `
-                    <div>${date.getDate()}일</div>
+                    <div>${date.toLocaleDateString('ko-KR', {
+                        month: 'long',
+                        day: 'numeric'
+                    })}</div>
+                    <div>${date.toLocaleDateString('ko-KR', {
+                        weekday: 'short'
+                    })}</div>
                     <svg class="moon-svg-small" viewBox="0 0 100 100">
                         ${createMoonSVG(phase)}
                     </svg>
@@ -264,6 +272,10 @@
                 createMonthView(date.getFullYear(), date.getMonth());
             }
         });
+
+        // 초기 월간 뷰 생성
+        const today = new Date();
+        createMonthView(today.getFullYear(), today.getMonth());
     </script>
 </body>
 </html>
