@@ -6,7 +6,7 @@
     <title>달의 모양 관찰하기</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
             padding: 20px;
             background-color: #f5f5f5;
@@ -16,7 +16,7 @@
             margin: 0 auto;
             background: white;
             padding: 20px;
-            border-radius: 10px;
+            border-radius: 12px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .header {
@@ -28,6 +28,7 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            gap: 10px;
         }
         .moon-display {
             display: flex;
@@ -36,19 +37,23 @@
             margin: 20px 0;
             padding: 20px;
             background: #f8f9fa;
-            border-radius: 8px;
+            border-radius: 12px;
         }
         .moon-svg {
             width: 200px;
             height: 200px;
+            background: #1a1a1a;
+            border-radius: 50%;
+            padding: 0;
             margin-bottom: 15px;
-            padding: 20px;
         }
         .moon-svg-small {
             width: 50px;
             height: 50px;
+            background: #1a1a1a;
+            border-radius: 50%;
+            padding: 0;
             margin: 10px auto;
-            padding: 5px;
         }
         .info {
             text-align: center;
@@ -58,33 +63,40 @@
             background: #007bff;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
+            white-space: nowrap;
         }
         .button:hover {
             background: #0056b3;
         }
         .month-view {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
             margin-top: 20px;
         }
         .day-card {
-            padding: 10px;
+            padding: 12px;
             background: #f8f9fa;
             border-radius: 8px;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
         .date-input {
             padding: 8px;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 8px;
+            flex: 1;
         }
         @media (max-width: 600px) {
             .controls {
                 flex-direction: column;
-                gap: 10px;
+            }
+            .date-input {
+                width: 100%;
             }
             .moon-svg {
                 width: 150px;
@@ -110,97 +122,86 @@
                 <p id="lunarDate"></p>
             </div>
         </div>
-        <div id="monthView" class="month-view" style="display: none">
-            <!-- 월간 뷰는 자바스크립트로 생성됩니다 -->
-        </div>
+        <div id="monthView" class="month-view" style="display: none"></div>
     </div>
 
     <script>
-        // 달의 위상 계산 함수
-        function getMoonPhase(date) {
-            const year = date.getFullYear();
-            const month = date.getMonth() + 1;
-            const day = date.getDate();
-            
-            const jd = (367 * year) - Math.floor((7 * (year + Math.floor((month + 9) / 12))) / 4) + 
-                      Math.floor((275 * month) / 9) + day - 730530;
-            
-            return ((jd % 29.5) / 29.5) * 100;
+        // 율리우스 날짜 계산
+        function getJulianDate(date) {
+            const time = date.getTime();
+            const tzoffset = date.getTimezoneOffset();
+            return (time / 86400000) - (tzoffset / 1440) + 2440587.5;
         }
 
-        // 달 모양 SVG 생성
-        function createMoonSVG(phase) {
-            let svg = '';
-            const centerX = 50;
-            const radius = 40;
+        // 정확한 달의 위상 계산 (천문학적 알고리즘)
+        function getMoonPhase(date) {
+            const JD = getJulianDate(date);
+            
+            // 2000년 1월 1일부터의 일수
+            const days = JD - 2451545.0;
+            
+            // 달의 공전 주기(시노딕 주기)는 29.530589일
+            const lunations = 29.530589;
+            
+            // 마지막 삭(New Moon)으로부터의 위상
+            let phase = ((days % lunations) / lunations) * 100;
+            
+            // 음수 위상 처리
+            if (phase < 0) phase += 100;
+            
+            return phase;
+        }
 
-            if (phase < 5 || phase > 95) {
-                // 삭 - 보이지 않음
-                return '<circle cx="50" cy="50" r="40" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="5,5"/>';
-            } else if (phase === 50) {
-                // 보름달 - 완전한 원
-                return '<circle cx="50" cy="50" r="40" fill="#FDB813"/>';
-            } else if (phase < 50) {
+        // 달 모양 SVG 생성 (정확한 형태)
+        function createMoonSVG(phase) {
+            const cx = 50, cy = 50, r = 48;
+
+            // 위상에 따른 달 모양 계산
+            if (phase < 1 || phase > 99) {
+                // 삭 (New Moon)
+                return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#1a1a1a" stroke="#666" stroke-width="1"/>`;
+            }
+            
+            if (Math.abs(phase - 50) < 1) {
+                // 보름달 (Full Moon)
+                return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#FDB813"/>`;
+            }
+
+            let d = '';
+            const sweep = phase > 50 ? 1 : 0;
+            const fade = phase > 50 ? (100 - phase) / 50 : phase / 50;
+            const x = cx + r * Math.cos((1 - fade) * Math.PI);
+
+            if (phase <= 50) {
                 // 초승달에서 상현달까지
-                const width = radius * (phase / 50);
-                return `
-                    <path d="
-                        M ${centerX},${50-radius}
-                        A ${radius},${radius} 0 0,1 ${centerX},${50+radius}
-                        A ${width},${radius} 0 0,0 ${centerX},${50-radius}
-                        Z
-                    " fill="#FDB813"/>
-                `;
+                d = `M ${cx} ${cy-r}
+                     A ${r} ${r} 0 1 1 ${cx} ${cy+r}
+                     A ${r*fade} ${r} 0 0 0 ${cx} ${cy-r}`;
             } else {
                 // 하현달에서 그믐달까지
-                const width = radius * ((100 - phase) / 50);
-                return `
-                    <path d="
-                        M ${centerX},${50-radius}
-                        A ${radius},${radius} 0 0,0 ${centerX},${50+radius}
-                        A ${width},${radius} 0 0,1 ${centerX},${50-radius}
-                        Z
-                    " fill="#FDB813"/>
-                `;
+                d = `M ${cx} ${cy-r}
+                     A ${r} ${r} 0 1 0 ${cx} ${cy+r}
+                     A ${r*fade} ${r} 0 0 1 ${cx} ${cy-r}`;
             }
+
+            return `<path d="${d}" fill="#FDB813"/>`;
         }
 
         // 달의 위상 설명
         function getMoonPhaseDescription(phase) {
-            if (phase < 5) return "삭 (New Moon)";
-            if (phase < 25) return "초승달";
-            if (phase < 45) return "상현달";
-            if (phase < 55) return "보름달 (Full Moon)";
-            if (phase < 75) return "하현달";
-            if (phase < 95) return "그믐달";
+            if (phase < 1) return "삭 (New Moon)";
+            if (phase < 25) return "초승달 🌒";
+            if (phase < 45) return "상현달 🌓";
+            if (phase < 55) return "보름달 🌕";
+            if (phase < 75) return "하현달 🌗";
+            if (phase < 99) return "그믐달 🌘";
             return "삭 (New Moon)";
-        }
-
-        // 음력 날짜 계산 (간단한 근사치)
-        function getLunarDate(date) {
-            // 음력은 대략 양력보다 11일 느림 (매우 단순화된 계산)
-            const offset = date.getDate() - 11;
-            const month = date.getMonth() + 1;
-            let lunarMonth = month;
-            let lunarDay = offset;
-
-            if (offset < 1) {
-                lunarMonth = month - 1;
-                if (lunarMonth < 1) lunarMonth = 12;
-                lunarDay = 30 + offset; // 이전 달의 마지막 날부터 계산
-            }
-
-            return {
-                month: lunarMonth,
-                day: lunarDay > 0 ? lunarDay : 1
-            };
         }
 
         // UI 업데이트
         function updateUI(date) {
             const phase = getMoonPhase(date);
             const description = getMoonPhaseDescription(phase);
-            const lunar = getLunarDate(date);
 
             document.getElementById('moonSVG').innerHTML = createMoonSVG(phase);
             document.getElementById('phaseText').textContent = description;
@@ -209,7 +210,6 @@
                 month: 'long',
                 day: 'numeric'
             });
-            document.getElementById('lunarDate').textContent = `음력: ${lunar.month}월 ${lunar.day}일`;
         }
 
         // 월간 뷰 생성
@@ -217,23 +217,17 @@
             const monthView = document.getElementById('monthView');
             monthView.innerHTML = '';
 
-            // 해당 월의 첫 날
-            const firstDay = new Date(year, month, 1);
-            // 해당 월의 마지막 날
-            const lastDay = new Date(year, month + 1, 0);
-            const daysInMonth = lastDay.getDate();
-            
-            for (let day = 1; day <= daysInMonth; day++) {
+            const lastDay = new Date(year, month + 1, 0).getDate();
+
+            for (let day = 1; day <= lastDay; day++) {
                 const date = new Date(year, month, day);
                 const phase = getMoonPhase(date);
                 const description = getMoonPhaseDescription(phase);
-                const lunar = getLunarDate(date);
 
                 const dayCard = document.createElement('div');
                 dayCard.className = 'day-card';
                 dayCard.innerHTML = `
                     <div>${date.getDate()}일</div>
-                    <div>음력 ${lunar.month}월 ${lunar.day}일</div>
                     <svg class="moon-svg-small" viewBox="0 0 100 100">
                         ${createMoonSVG(phase)}
                     </svg>
@@ -243,11 +237,12 @@
             }
         }
 
-        // 이벤트 리스너 설정
-        document.getElementById('dateSelector').valueAsDate = new Date();
+        // 초기 설정 및 이벤트 리스너
+        const dateSelector = document.getElementById('dateSelector');
+        dateSelector.valueAsDate = new Date();
         updateUI(new Date());
 
-        document.getElementById('dateSelector').addEventListener('change', (e) => {
+        dateSelector.addEventListener('change', (e) => {
             const date = new Date(e.target.value);
             updateUI(date);
             if (document.getElementById('monthView').style.display !== 'none') {
@@ -265,7 +260,7 @@
             e.target.textContent = isMonthView ? '일간 보기' : '월간 보기';
 
             if (isMonthView) {
-                const date = new Date(document.getElementById('dateSelector').value);
+                const date = new Date(dateSelector.value);
                 createMonthView(date.getFullYear(), date.getMonth());
             }
         });
