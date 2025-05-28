@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset=>UTF-8" />
+ <meta 이름="viewport" 콘텐츠="width=장치 너비, 초기 규모=1.0"/>
+ <title>달의 모양 관찰하기</title>
+ <링크 rel="스타일시트" href="style.css"/>
+</head>
+<body>
+ <div class="container">
+ <div class="header">
+ <h1>달의 모양 관찰하기</h1>
+ </div>
+ <div class="controls">
+ <입력 유형="날짜" id="날짜 선택자" 클래스="날짜 입력" />
+ <버튼 id="view토글 클래스="버튼">월간 보기</버튼>
+ </div>
+ <div id="dailyView" 클래스="moon-display">
+ <svg ID="moonSVG" 클래스="moon-svg" 뷰박스="0 0 100 100"></svg>
+ <div class="info">
+ <h2 id="phaseText"></h2>
+ <p id= "dateText"></p>
+ <div id="moon의미" 클래스="moon의미"></div>
+ </div>
+ </div>
+ <div class="location-info">
+ <h3>관측 정보</h3>
+ <div id="locationStatus">위치 정보를 가져오는 중...</div>
+ <div class="관찰 그리드">
+ <div class="info-card">
+ <h3>달 출몰 시간</h3>
+ <div id="moon타임즈"></div>
+ </div>
+ <div class="info-card">
+ <h3>현재 달 위치</h3>
+ <div id= "moonPosition"></div>
+ <div class="compass" ID="moon compass">
+ <div class="compass-marker" id="moonMarker"></div>
+ <div id="compassDirections"></div>
+ </div>
+ </div>
+ <div class="info-card">
+ <h3>관측 조건</h3>
+ <div id="관찰 조건"></div>
+ </div>
+ </div>
+ </div>
+ <div ID="monthView" 클래스="monthView" 스타일="디스플레이: 없음"></div>
+ </div>
+ <script src="script.js"></script>
+</body>
+</html>
