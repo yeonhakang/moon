@@ -1,98 +1,121 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>팔의 미량 관찰하기</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>달 관측 웹페이지</title>
   <style>
     body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
       background-color: #000;
       color: #fff;
-      font-family: 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       padding: 20px;
     }
     h1 {
-      font-size: 2em;
-      margin-bottom: 20px;
-      color: #ffd700;
+      margin-bottom: 10px;
     }
-    #moonSVG {
-      width: 220px;
-      height: 220px;
-      margin: 0 auto;
+    #moonContainer {
+      background-color: #111;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+      max-width: 400px;
+      text-align: center;
+    }
+    svg {
       display: block;
-      filter: drop-shadow(0 0 12px #fcd44080);
+      margin: 0 auto;
     }
     .info {
-      margin-top: 20px;
-      font-size: 1.2em;
+      margin-top: 15px;
     }
-    .highlight {
-      color: #ffd700;
+    @media (max-width: 600px) {
+      #moonContainer {
+        width: 90%;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>팔의 미량</h1>
-  <svg id="moonSVG" viewBox="0 0 100 100"></svg>
-  <div class="info">
-    <div>화이샴: <span class="highlight" id="phasePercent"></span>%</div>
-    <div>설명: <span id="moonDesc"></span></div>
+  <h1>달의 위상 관찰</h1>
+  <div id="moonContainer">
+    <svg id="moonSVG" width="200" height="200" viewBox="0 0 100 100"></svg>
+    <div class="info">
+      <p id="phaseText"></p>
+      <p id="phaseMeaning"></p>
+    </div>
   </div>
 
   <script>
+    function getJulianDate(date) {
+      const time = date.getTime();
+      const tzoffset = date.getTimezoneOffset();
+      return (time / 86400000) - (tzoffset / 1440) + 2440587.5;
+    }
+
+    function getMoonPhase(date) {
+      const JD = getJulianDate(date);
+      const days = JD - 2451545.0;
+      const lunations = 29.530588861;
+      let phase = ((days % lunations) / lunations) * 100;
+      if (phase < 0) phase += 100;
+      return phase;
+    }
+
     function createMoonSVG(phase) {
-      const cx = 50, cy = 50, r = 48;
-      const percent = phase / 100;
-      const fade = percent <= 0.5 ? percent * 2 : (1 - percent) * 2;
-      const sweepFlag = percent <= 0.5 ? 0 : 1;
+      const cx = 50, cy = 50, r = 45;
+      let svg = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#111" />`;
+      let fade = phase > 50 ? (100 - phase) / 50 : phase / 50;
 
-      const arcPath = `
-        M ${cx - r} ${cy}
-        A ${r} ${r} 0 1 1 ${cx + r} ${cy}
-        A ${r * fade} ${r} 0 1 ${sweepFlag} ${cx - r} ${cy}
-        Z
-      `;
+      if (phase < 1 || phase > 99) {
+        svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#000" />`;
+      } else if (Math.abs(phase - 50) < 1) {
+        svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" filter="url(#glow)" />`;
+      } else {
+        const direction = phase <= 50 ? 1 : -1;
+        const arcR = r * fade;
+        svg += `<path d="M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx} ${cy + r} A ${arcR} ${r} 0 0 ${direction === 1 ? 0 : 1} ${cx} ${cy - r}" fill="#fff" filter="url(#glow)" />`;
+      }
 
-      const svgContent = `
+      const defs = `
         <defs>
-          <radialGradient id="moonLight" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#fcd440"/>
-            <stop offset="100%" stop-color="#fcd440"/>
-          </radialGradient>
-          <radialGradient id="moonDark" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#000000" stop-opacity="0.9"/>
-            <stop offset="100%" stop-color="#000000" stop-opacity="1"/>
-          </radialGradient>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#fff" />
+          </filter>
         </defs>
-        <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#moonDark)" />
-        <path d="${arcPath}" fill="url(#moonLight)" />
       `;
 
-      console.log(svgContent); // SVG 개체 확인
-      return svgContent;
+      const fullSVG = `${defs}${svg}`;
+      console.log(fullSVG); // 콘솔 확인
+      return fullSVG;
     }
 
     function getMoonPhaseInfo(phase) {
-      if (phase < 1) return "산 가까지 정지.";
-      if (phase < 25) return "초승달 - 기획의 씨악이 자라남니다.";
-      if (phase < 50) return "상현달 - 건강과 확장의 시기.";
-      if (phase < 75) return "만하 - 감정의 개포.";
-      if (phase < 99) return "하현달 - 도움을 줄 고도.";
-      return "극한 수리.";
+      if (phase < 1) return ["삭 (New Moon) 🌑", "달이 보이지 않는 시기입니다. 새로운 시작을 준비하세요."];
+      if (phase < 10) return ["초승달 🌒", "작은 빛이 시작되는 시기입니다. 새 출발의 의지가 필요합니다."];
+      if (phase < 25) return ["상현달 🌓", "왼쪽이 어두운 반달입니다. 열정이 필요한 시기입니다."];
+      if (phase < 40) return ["만월 직전 🌔", "보름달을 향해 가는 시기입니다. 성장이 느껴집니다."];
+      if (phase < 60) return ["보름달 🌕", "달이 가득 찬 시기입니다. 완성과 감사의 시간입니다."];
+      if (phase < 75) return ["만월 이후 🌖", "달이 줄어드는 시기입니다. 정리와 성찰의 시간입니다."];
+      if (phase < 90) return ["하현달 🌗", "오른쪽이 어두운 반달입니다. 지난 시간에 대한 반성이 필요합니다."];
+      return ["그믐달 🌘", "달이 거의 사라진 시기입니다. 조용한 준비가 필요합니다."];
     }
 
-    const today = new Date();
-    const jd = (today.getTime() / 86400000) + 2440587.5;
-    const days = jd - 2451545.0;
-    const lunations = 29.530588861;
-    let phase = ((days % lunations) / lunations) * 100;
-    if (phase < 0) phase += 100;
+    function updateMoon() {
+      const today = new Date();
+      const phase = getMoonPhase(today);
+      const svgContent = createMoonSVG(phase);
+      document.getElementById("moonSVG").innerHTML = svgContent; // 화면 삽입
+      const [name, meaning] = getMoonPhaseInfo(phase);
+      document.getElementById("phaseText").textContent = name;
+      document.getElementById("phaseMeaning").textContent = meaning;
+    }
 
-    document.getElementById("moonSVG").innerHTML = createMoonSVG(phase);
-    document.getElementById("phasePercent").textContent = phase.toFixed(1);
-    document.getElementById("moonDesc").textContent = getMoonPhaseInfo(phase);
+    updateMoon();
   </script>
 </body>
 </html>
