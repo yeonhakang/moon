@@ -1,117 +1,141 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>오늘의 달</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
-      background-color: #000;
-      color: #fff;
-      text-align: center;
-      padding: 20px;
-    }
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-      color: #ffe082;
-    }
-    .moon {
-      margin: 0 auto;
-      width: 200px;
-      height: 200px;
-      border-radius: 50%;
-      background: radial-gradient(circle at center, #fdd835 0%, #000 60%);
-      box-shadow: 0 0 40px 10px #fdd835;
-      position: relative;
-      overflow: hidden;
-    }
-    .moon::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 50%;
-      width: 100%;
-      height: 100%;
-      background-color: #000;
-      border-radius: 50%;
-      transform: translateX(calc(var(--phase, 0%) - 50%));
-    }
-    .info {
-      margin-top: 1.5rem;
-      font-size: 1.1rem;
-    }
-    .info .label {
-      color: #ffe082;
-      font-weight: bold;
-    }
-    .desc {
-      margin-top: 1rem;
-      color: #bbb;
-    }
-    .button {
-      background-color: #1565c0;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      font-size: 1rem;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-top: 1rem;
-    }
-    @media (max-width: 600px) {
-      .moon {
-        width: 140px;
-        height: 140px;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오늘의 달</title>
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            color: #fff;
+            font-family: 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 2rem;
+            color: #FFD700;
+            margin-bottom: 20px;
+        }
+        .moon-svg {
+            width: 200px;
+            height: 200px;
+            background: transparent;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 12px #FDB813);
+        }
+        .info {
+            font-size: 1rem;
+            text-align: center;
+            line-height: 1.6;
+        }
+        .highlight {
+            color: #FFD700;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-  <h1>🌙 오늘의 달</h1>
-  <div class="moon" id="moon"></div>
-  <div class="info">
-    <div><span class="label">위상:</span> <span id="illumination">...</span>%</div>
-    <div><span class="label">방향:</span> <span id="azimuth">...</span>°</div>
-    <div><span class="label">고도:</span> <span id="altitude">...</span>°</div>
-    <div><span class="label">출:</span> <span id="rise">...</span> / <span class="label">물:</span> <span id="set">...</span></div>
-  </div>
-  <div class="desc" id="description">⛰️ 설명이 로드중입니다...</div>
-  <button class="button" onclick="location.reload()">다시 계산</button>
+    <h1>🌙 오늘의 달</h1>
+    <svg id="moonSVG" class="moon-svg" viewBox="0 0 100 100"></svg>
+    <div class="info" id="moonInfo"></div>
+    <button onclick="init()">다시 계산</button>
 
-  <script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js"></script>
-  <script>
-    navigator.geolocation.getCurrentPosition((pos) => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      const now = new Date();
-      const moon = SunCalc.getMoonIllumination(now);
-      const moonPos = SunCalc.getMoonPosition(now, lat, lon);
-      const moonTimes = SunCalc.getMoonTimes(now, lat, lon);
+    <script>
+        function getJulianDate(date) {
+            const time = date.getTime();
+            const tzoffset = date.getTimezoneOffset();
+            return (time / 86400000) - (tzoffset / 1440) + 2440587.5;
+        }
 
-      document.getElementById('illumination').textContent = (moon.fraction * 100).toFixed(1);
-      document.getElementById('azimuth').textContent = (moonPos.azimuth * 180 / Math.PI + 180).toFixed(1);
-      document.getElementById('altitude').textContent = (moonPos.altitude * 180 / Math.PI).toFixed(1);
-      document.getElementById('rise').textContent = moonTimes.rise ? moonTimes.rise.toTimeString().split(' ')[0] : '없음';
-      document.getElementById('set').textContent = moonTimes.set ? moonTimes.set.toTimeString().split(' ')[0] : '없음';
+        function getMoonPhase(date) {
+            const JD = getJulianDate(date);
+            const days = JD - 2451545.0;
+            const lunations = 29.530588861;
+            let phase = ((days % lunations) / lunations) * 100;
+            if (phase < 0) phase += 100;
+            return phase;
+        }
 
-      // 위상 반영 CSS 속성 설정 (빛나는 부분은 오른쪽)
-      document.getElementById('moon').style.setProperty('--phase', `${moon.phase * 100}%`);
+        function createMoonSVG(phase) {
+            const cx = 50, cy = 50, r = 48;
+            let d = '';
+            let svgContent = '';
+            
+            if (phase < 1 || phase > 99) {
+                svgContent = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="black" stroke="#FDB813" stroke-width="1"/>`;
+            } else {
+                const fade = phase > 50 ? (100 - phase) / 50 : phase / 50;
+                if (phase <= 50) {
+                    d = `M ${cx} ${cy - r}
+                         A ${r} ${r} 0 1 1 ${cx} ${cy + r}
+                         A ${r * fade} ${r} 0 0 0 ${cx} ${cy - r}`;
+                } else {
+                    d = `M ${cx} ${cy - r}
+                         A ${r} ${r} 0 1 0 ${cx} ${cy + r}
+                         A ${r * fade} ${r} 0 0 1 ${cx} ${cy - r}`;
+                }
+                svgContent = `
+                <defs>
+                    <radialGradient id="moonGlow" r="75%" cx="50%" cy="50%">
+                        <stop offset="0%" stop-color="#FDB813" />
+                        <stop offset="100%" stop-color="black" stop-opacity="0" />
+                    </radialGradient>
+                </defs>
+                <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#moonGlow)" />
+                <path d="${d}" fill="#FDB813" />`;
+            }
 
-      const desc = getPhaseDescription(moon.phase);
-      document.getElementById('description').textContent = `🌑 ${desc}`;
-    });
+            console.log("SVG Content:", svgContent); // 확인용 로그
+            document.getElementById('moonSVG').innerHTML = svgContent; // 삽입 확인
+        }
 
-    function getPhaseDescription(phase) {
-      if (phase < 0.03 || phase > 0.97) return "산정달 - 시작과 시작이 같은 순간";
-      if (phase < 0.25) return "초승달 - 기획의 씨악이 자라날 때입니다.";
-      if (phase < 0.48) return "상향달 - 가장 힘있고 발전적인 시기";
-      if (phase < 0.52) return "만상 - 정중에서 초점을 지니다.";
-      if (phase < 0.75) return "만하달 - 감정을 다시 볼 때";
-      return "까지달 - 평정을 담은 종료의 시간";
-    }
-  </script>
+        function updateInfo(phase) {
+            let name = '', meaning = '';
+            if (phase < 1 || phase > 99) {
+                name = "삭"; meaning = "새로운 시작을 준비할 때입니다.";
+            } else if (phase < 15) {
+                name = "초승달"; meaning = "기회의 씨앗이 자라납니다.";
+            } else if (phase < 35) {
+                name = "상현달"; meaning = "긍정적인 에너지가 가득합니다.";
+            } else if (phase < 45) {
+                name = "만상"; meaning = "기대감이 커지는 시기입니다.";
+            } else if (phase <= 55) {
+                name = "보름달"; meaning = "풍요와 충만함이 느껴집니다.";
+            } else if (phase < 65) {
+                name = "만하"; meaning = "감사함을 느껴보세요.";
+            } else if (phase < 85) {
+                name = "하현달"; meaning = "지나온 날들을 돌아보세요.";
+            } else {
+                name = "그믐달"; meaning = "마무리와 정리의 시간을 가지세요.";
+            }
+
+            document.getElementById('moonInfo').innerHTML = 
+                `<div><span class="highlight">위상:</span> ${phase.toFixed(1)}%</div>
+                 <div><span class="highlight">설명:</span> 🌑 ${name} - ${meaning}</div>`;
+        }
+
+        function init() {
+            const today = new Date();
+            const phase = getMoonPhase(today);
+            createMoonSVG(phase);
+            updateInfo(phase);
+        }
+
+        init();
+    </script>
 </body>
 </html>
