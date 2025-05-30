@@ -1,79 +1,117 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>달 관찰 페이지</title>
-  <script src="https://unpkg.com/suncalc@1.8.0/suncalc.js"></script>
-  <style>
-    body {
-      background: linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
-      padding: 20px;
-    }
-    .moon {
-      width: 200px;
-      height: 200px;
-      border-radius: 50%;
-      margin: auto;
-      background: radial-gradient(circle at 60% 50%, #fff2cc, #ff8f00);
-      box-shadow: 0 0 30px rgba(253, 184, 19, 0.6);
-    }
-    #info {
-      margin-top: 20px;
-      text-align: center;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>달의 모양 관찰하기</title>
+    <script src="https://cdn.jsdelivr.net/npm/suncalc@1.8.0/suncalc.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: white;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #FDB813;
+            text-shadow: 0 0 10px rgba(253, 184, 19, 0.5);
+        }
+        .moon-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 40px;
+        }
+        svg {
+            width: 200px;
+            height: 200px;
+            filter: drop-shadow(0 0 20px rgba(253, 184, 19, 0.6));
+        }
+        .info {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .glow {
+            filter: drop-shadow(0 0 30px rgba(253, 184, 19, 0.5));
+        }
+    </style>
 </head>
 <body>
-  <h1>달의 위상 및 위치</h1>
-  <input type="date" id="datePicker" />
-  <button onclick="updateMoonData()">조회</button>
-  <div class="moon" id="moonSVG"></div>
-  <div id="info">
-    <p id="phaseText"></p>
-    <p id="moonPos"></p>
-    <p id="moonTimes"></p>
-    <p id="weather"></p>
-  </div>
-  <script>
-    let latitude = 37.5665;
-    let longitude = 126.9780;
-    let weatherApiKey = 'YOUR_OPENWEATHERMAP_API_KEY';
+    <h1>달의 모양 관찰하기</h1>
+    <div class="moon-container">
+        <svg id="moonSVG" viewBox="0 0 100 100"></svg>
+        <div class="info">
+            <p id="phaseText"></p>
+            <p id="dateText"></p>
+        </div>
+    </div>
 
-    function updateMoonData() {
-      const dateInput = document.getElementById("datePicker").value;
-      const date = dateInput ? new Date(dateInput) : new Date();
+    <script>
+        function drawMoonPhaseSVG(illumination) {
+            const svg = document.getElementById("moonSVG");
+            const cx = 50, cy = 50, r = 45;
+            svg.innerHTML = `
+                <defs>
+                    <radialGradient id="moonGradient" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" style="stop-color:#fff;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#aaa;stop-opacity:1" />
+                    </radialGradient>
+                </defs>
+                <circle cx="${cx}" cy="${cy}" r="${r}" fill="#1a1a1a" />
+                <path d="${getPhasePath(cx, cy, r, illumination.phase, illumination.fraction)}" fill="url(#moonGradient)" class="glow"/>
+            `;
+        }
 
-      const moonIllum = SunCalc.getMoonIllumination(date);
-      const moonPhase = moonIllum.phase;
-      const moonPos = SunCalc.getMoonPosition(date, latitude, longitude);
-      const moonTime = SunCalc.getMoonTimes(date, latitude, longitude);
+        function getPhasePath(cx, cy, r, phase, fraction) {
+            const fade = phase < 0.5 ? fraction : 1 - fraction;
+            const direction = phase < 0.5 ? 1 : 0;
+            const d = `
+                M ${cx} ${cy - r}
+                A ${r} ${r} 0 1 1 ${cx} ${cy + r}
+                A ${r * fade} ${r} 0 0 ${direction} ${cx} ${cy - r}
+            `;
+            return d;
+        }
 
-      document.getElementById("phaseText").innerText =
-        `위상: ${(moonPhase * 100).toFixed(1)}%`;
-      document.getElementById("moonPos").innerText =
-        `고도: ${(moonPos.altitude * 180 / Math.PI).toFixed(1)}°, 방위각: ${(moonPos.azimuth * 180 / Math.PI).toFixed(1)}°`;
-      document.getElementById("moonTimes").innerText =
-        `달 출: ${moonTime.rise ? moonTime.rise.toLocaleTimeString() : '없음'}, 달 몰: ${moonTime.set ? moonTime.set.toLocaleTimeString() : '없음'}`;
+        function updateMoonData(date, lat, lng) {
+            const illumination = SunCalc.getMoonIllumination(date);
+            drawMoonPhaseSVG(illumination);
 
-      fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${weatherApiKey}&units=metric`)
-        .then(res => res.json())
-        .then(data => {
-          const clouds = data.clouds.all;
-          document.getElementById("weather").innerText = `날씨: ${data.weather[0].description}, 구름량: ${clouds}%`;
-        });
-    }
+            const phaseName = getPhaseName(illumination.phase);
+            document.getElementById("phaseText").textContent = `${phaseName} (${(illumination.fraction * 100).toFixed(1)}%)`;
+            document.getElementById("dateText").textContent = date.toLocaleDateString("ko-KR", {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+            });
+        }
 
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        latitude = pos.coords.latitude;
-        longitude = pos.coords.longitude;
-        updateMoonData();
-      },
-      () => updateMoonData()
-    );
-  </script>
+        function getPhaseName(phase) {
+            if (phase < 0.03 || phase > 0.97) return "삭 (New Moon) 🌑";
+            if (phase < 0.25) return "초승달 (Waxing Crescent) 🌒";
+            if (phase < 0.27) return "상현달 (First Quarter) 🌓";
+            if (phase < 0.48) return "상현 반달 (Waxing Gibbous) 🌔";
+            if (phase < 0.52) return "보름달 (Full Moon) 🌕";
+            if (phase < 0.75) return "하현 반달 (Waning Gibbous) 🌖";
+            if (phase < 0.77) return "하현달 (Last Quarter) 🌗";
+            return "그믐달 (Waning Crescent) 🌘";
+        }
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                updateMoonData(new Date(), lat, lng);
+            }, err => {
+                console.warn("위치 정보를 가져오지 못했습니다. 서울 기준으로 표시합니다.");
+                updateMoonData(new Date(), 37.5665, 126.9780); // 서울
+            });
+        } else {
+            updateMoonData(new Date(), 37.5665, 126.9780); // 위치 미지원 시
+        }
+    </script>
 </body>
 </html>
