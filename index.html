@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>달 관측기</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div class="container">
+        <h1>🌙 오늘의 달</h1>
+        <div id="moonDisplay">
+            <canvas id="moonCanvas" width="200" height="200"></canvas>
+            <div id="moonInfo"></div>
+        </div>
+        <div id="extraInfo">
+            <p><strong>위상:</strong> <span id="phase"></span></p>
+            <p><strong>방향:</strong> <span id="azimuth"></span></p>
+            <p><strong>고도:</strong> <span id="altitude"></span></p>
+            <p><strong>출:</strong> <span id="moonrise"></span> / <strong>몰:</strong> <span id="moonset"></span></p>
+            <p><strong>설명:</strong> <span id="meaning"></span></p>
+        </div>
+    </div>
+    <script src="https://unpkg.com/suncalc@1.8.0/suncalc.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
