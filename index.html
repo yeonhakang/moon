@@ -3,122 +3,118 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>오늘의 달</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
+  <title>타이틀</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
     body {
-      background: #000;
-      color: #fff;
-      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      min-height: 100vh;
-      padding: 1rem;
+      background: black;
+      color: white;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       text-align: center;
+      padding: 20px;
     }
-
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-    }
-
-    .moon {
+    .moon-phase {
+      margin: 30px auto;
       width: 200px;
       height: 200px;
       border-radius: 50%;
-      margin: 1rem auto;
-      box-shadow: 0 0 30px rgba(255, 223, 0, 0.6);
+      position: relative;
+      background: radial-gradient(circle at center, #ffeb3b, #fbc02d);
+      box-shadow: 0 0 60px 20px rgba(255, 235, 59, 0.3);
     }
-
+    .moon-mask {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: black;
+      transform-origin: center left;
+    }
     .info {
-      font-size: 1rem;
-      line-height: 1.6;
+      margin-top: 20px;
+      font-size: 1.2em;
     }
-
     .highlight {
-      color: #ffde59;
+      color: #ffeb3b;
+      font-weight: bold;
     }
-
     @media (max-width: 600px) {
-      h1 {
-        font-size: 1.5rem;
+      body {
+        font-size: 16px;
       }
-      .moon {
+      .moon-phase {
         width: 150px;
         height: 150px;
       }
-      .info {
-        font-size: 0.9rem;
-      }
     }
   </style>
-  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" rel="stylesheet" />
 </head>
 <body>
   <h1>🌙 오늘의 달</h1>
-  <div class="moon" id="moon"></div>
-  <div class="info" id="info"></div>
-
+  <div class="moon-phase">
+    <div class="moon-mask" id="moonMask"></div>
+  </div>
+  <div class="info">
+    <p><span class="highlight">위상</span>: <span id="illumination">--</span>%</p>
+    <p><span class="highlight">방향</span>: <span id="azimuth">--</span>°</p>
+    <p><span class="highlight">고도</span>: <span id="altitude">--</span>°</p>
+    <p>출: <span id="moonrise">--:--:--</span> / 무니: <span id="moonset">--:--:--</span></p>
+    <p>🌑 <span id="phaseName"></span> - <span id="meaning"></span></p>
+  </div>
+  <script src="https://unpkg.com/suncalc"></script>
   <script>
-    const moonDiv = document.getElementById('moon');
-    const infoDiv = document.getElementById('info');
-
-    navigator.geolocation.getCurrentPosition(pos => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
+    async function initMoonView() {
       const now = new Date();
+      const coords = await getCurrentPosition();
+      const moon = SunCalc.getMoonIllumination(now);
+      const pos = SunCalc.getMoonPosition(now, coords.latitude, coords.longitude);
+      const times = SunCalc.getMoonTimes(now, coords.latitude, coords.longitude);
 
-      const phaseData = SunCalc.getMoonIllumination(now);
-      const posData = SunCalc.getMoonPosition(now, lat, lon);
-      const times = SunCalc.getMoonTimes(now, lat, lon);
+      // 달 위상 비율
+      const illumination = (moon.phase < 0.5 ? moon.phase * 2 : (1 - moon.phase) * 2) * 100;
+      const isWaxing = moon.phase < 0.5;
+      const clip = 100 - illumination;
 
-      const phase = (phaseData.phase * 100).toFixed(1);
-      const azimuth = (posData.azimuth * 180 / Math.PI + 360) % 360;
-      const altitude = (posData.altitude * 180 / Math.PI).toFixed(1);
+      const mask = document.getElementById('moonMask');
+      mask.style.width = `${clip}%`;
+      mask.style.left = isWaxing ? 'auto' : '0';
+      mask.style.right = isWaxing ? '0' : 'auto';
 
-      moonDiv.style.background = `radial-gradient(circle at ${phaseData.phase <= 0.5 ? 'left' : 'right'}, #ffdb4d ${Math.abs(0.5 - phaseData.phase) * 200}%, #000 ${Math.abs(0.5 - phaseData.phase) * 200}%)`;
+      // 텍스트 업데이트
+      document.getElementById('illumination').textContent = (illumination + 0.1).toFixed(1);
+      document.getElementById('azimuth').textContent = (pos.azimuth * 180 / Math.PI + 180).toFixed(1);
+      document.getElementById('altitude').textContent = (pos.altitude * 180 / Math.PI).toFixed(1);
+      document.getElementById('moonrise').textContent = times.rise ? times.rise.toTimeString().split(' ')[0] : '없음';
+      document.getElementById('moonset').textContent = times.set ? times.set.toTimeString().split(' ')[0] : '없음';
 
-      let label = '';
-      if (phase < 1) label = '삭 🌑';
-      else if (phase < 15) label = '초승달 🌒';
-      else if (phase < 35) label = '상현달 🌓';
-      else if (phase < 45) label = '만상 🌔';
-      else if (phase <= 55) label = '보름달 🌕';
-      else if (phase < 65) label = '만하 🌖';
-      else if (phase < 85) label = '하현달 🌗';
-      else if (phase < 99) label = '그믐달 🌘';
-      else label = '삭 🌑';
+      const phaseName = getPhaseName(moon.phase);
+      document.getElementById('phaseName').textContent = phaseName.name;
+      document.getElementById('meaning').textContent = phaseName.meaning;
+    }
 
-      const description = {
-        '삭 🌑': '달이 보이지 않는 시기입니다. 새로운 시작을 준비할 때입니다.',
-        '초승달 🌒': '기회의 씨앗이 자라납니다.',
-        '상현달 🌓': '긍정적인 에너지가 가득합니다.',
-        '만상 🌔': '기대감이 커지는 시기입니다.',
-        '보름달 🌕': '풍요와 충만함의 시기입니다.',
-        '만하 🌖': '감사의 시간을 가져보세요.',
-        '하현달 🌗': '지나온 날들을 돌아보세요.',
-        '그믐달 🌘': '마무리와 정리의 시기입니다.'
-      };
+    function getCurrentPosition() {
+      return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve(pos.coords),
+          () => resolve({ latitude: 37.5665, longitude: 126.978 }),
+          { enableHighAccuracy: true }
+        );
+      });
+    }
 
-      infoDiv.innerHTML = `
-        <p><span class="highlight">위상</span>: ${phase}%</p>
-        <p><span class="highlight">방향</span>: ${azimuth.toFixed(1)}°</p>
-        <p><span class="highlight">고도</span>: ${altitude}°</p>
-        <p><span class="highlight">출</span>: ${times.rise ? times.rise.toLocaleTimeString() : '없음'} / 
-           <span class="highlight">몰</span>: ${times.set ? times.set.toLocaleTimeString() : '없음'}</p>
-        <p>🌓 <strong>${label}</strong> - ${description[label]}</p>
-      `;
-    }, err => {
-      infoDiv.innerHTML = '<p>위치 정보를 불러오지 못했습니다.</p>';
-    });
+    function getPhaseName(phase) {
+      if (phase === 0) return { name: '산수연', meaning: '처음의 시작을 안내합니다.' };
+      if (phase < 0.25) return { name: '초승달', meaning: '기획의 씨악이 자라날 때입니다.' };
+      if (phase === 0.25) return { name: '상향달', meaning: '정기가 가르치는 때입니다.' };
+      if (phase < 0.5) return { name: '만상', meaning: '기대가 크게 되는 때입니다.' };
+      if (phase === 0.5) return { name: '방목', meaning: '충납과 함정의 순간입니다.' };
+      if (phase < 0.75) return { name: '만하', meaning: '감사가 드러날 때입니다.' };
+      if (phase === 0.75) return { name: '하향달', meaning: '회고를 보내야 할 때입니다.' };
+      return { name: '그민달', meaning: '마무리의 시간이 드러오고 있습니다.' };
+    }
+
+    initMoonView();
   </script>
 </body>
 </html>
