@@ -1,49 +1,73 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>탄의 물형 관찰</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>달의 모양 관찰하기</title>
   <style>
     body {
-      background-color: #000;
-      color: white;
-      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-      padding: 20px;
       margin: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      background-color: #000;
+      color: #fff;
+      font-family: 'Noto Sans KR', sans-serif;
+      text-align: center;
     }
 
     h1 {
-      font-size: 1.8rem;
-      margin-bottom: 10px;
+      font-size: 2em;
+      margin-top: 1em;
+      color: #ffe082;
     }
 
-    .moon {
+    .moon-img {
       width: 200px;
       height: 200px;
+      margin: 1em auto;
       border-radius: 50%;
-      margin: 20px auto;
-      background: radial-gradient(circle at center, #f7d046 60%, #000 60%);
-      box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
+      box-shadow: 0 0 30px 10px rgba(255, 255, 0, 0.5);
+      background-size: cover;
+      background-position: center;
     }
 
     .info {
-      text-align: center;
-      font-size: 1rem;
-      line-height: 1.6;
+      font-size: 1.2em;
+      margin: 1em;
     }
 
-    .highlight {
-      color: #ffd700;
-      font-weight: bold;
+    .info strong {
+      color: #ffee58;
+    }
+
+    .month-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 10px;
+      padding: 1em;
+    }
+
+    .day-cell {
+      background-color: #111;
+      border: 1px solid #333;
+      padding: 0.5em;
+      border-radius: 10px;
+    }
+
+    .day-cell img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+    }
+
+    .desc {
+      font-size: 0.85em;
+      color: #ccc;
     }
 
     @media (max-width: 600px) {
-      .moon {
+      h1 {
+        font-size: 1.5em;
+      }
+      .moon-img {
         width: 150px;
         height: 150px;
       }
@@ -52,72 +76,58 @@
 </head>
 <body>
   <h1>🌙 오늘의 달</h1>
-  <div class="moon" id="moon"></div>
-  <div class="info" id="info">Loading...</div>
+  <div id="moonPhaseImg" class="moon-img"></div>
+  <div class="info">
+    <div><strong>위상:</strong> <span id="illumination"></span>%</div>
+    <div><strong>방향:</strong> <span id="azimuth"></span>°</div>
+    <div><strong>고도:</strong> <span id="altitude"></span>°</div>
+    <div><strong>출:</strong> <span id="rise"></span> / <strong>몰:</strong> <span id="set"></span></div>
+    <div><strong>설명:</strong> <span id="description"></span></div>
+  </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
   <script>
-    navigator.geolocation.getCurrentPosition(success, error);
+    const moonPhaseImg = document.getElementById('moonPhaseImg');
 
-    function success(pos) {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      const date = new Date();
-
-      const moonPos = SunCalc.getMoonPosition(date, lat, lng);
-      const moonIllum = SunCalc.getMoonIllumination(date);
-      const moonTimes = SunCalc.getMoonTimes(date, lat, lng);
-
-      const phasePercent = (moonIllum.phase * 100).toFixed(1);
-      const az = (moonPos.azimuth * 180 / Math.PI + 360).toFixed(1);
-      const alt = (moonPos.altitude * 180 / Math.PI).toFixed(1);
-
-      const rise = moonTimes.rise ? moonTimes.rise.toLocaleTimeString('ko-KR') : '없음';
-      const set = moonTimes.set ? moonTimes.set.toLocaleTimeString('ko-KR') : '없음';
-
-      const phaseText = getPhaseText(moonIllum.phase);
-      document.getElementById("moon").style.background = getMoonGradient(moonIllum.phase);
-      document.getElementById("info").innerHTML = `
-        <div class="highlight">${phaseText}</div>
-        <div>� 무엇이: ${phasePercent}%</div>
-        <div>방향: ${az}° / 고도: ${alt}°</div>
-        <div>출: ${rise} / 무닌: ${set}</div>
-        <div> 🌑 ${getPhaseMeaning(moonIllum.phase)} </div>
-      `;
+    function getPhaseDescription(fraction) {
+      if (fraction < 0.03) return '🌑 삭 - 새로운 시작의 어둠';
+      if (fraction < 0.25) return '🌒 초승달 - 기회의 씨앗이 자라납니다';
+      if (fraction < 0.5) return '🌓 상현달 - 도전의 시기';
+      if (fraction < 0.75) return '🌔 보름달 - 성취와 감사';
+      if (fraction < 0.97) return '🌗 하현달 - 돌아봄과 반성';
+      return '🌑 그믐달 - 끝과 새로운 시작의 준비';
     }
 
-    function error() {
-      document.getElementById("info").textContent = "위치 정보를 가져올 수 없어요.";
+    function getMoonImage(fraction, phase) {
+      const index = Math.round(fraction * 29.5);
+      return `https://svs.gsfc.nasa.gov/vis/a000000/a005400/a005415/frames/1920x1080_1x1_30fps/moon.${String(index).padStart(2, '0')}.jpg`;
     }
 
-    function getPhaseText(phase) {
-      if (phase < 0.03 || phase > 0.97) return "삭 (New Moon)";
-      else if (phase < 0.25) return "차성달 (Waxing Crescent)";
-      else if (phase < 0.26) return "상헌달 하나형";
-      else if (phase < 0.48) return "상헌달";
-      else if (phase < 0.52) return "만상 (Full Moon)";
-      else if (phase < 0.75) return "만하달";
-      else if (phase < 0.97) return "거문달 (Waning Crescent)";
-      else return "삭 (New Moon)";
+    function updateMoonData(position) {
+      const now = new Date();
+      const moonPos = SunCalc.getMoonPosition(now, position.coords.latitude, position.coords.longitude);
+      const moonIllum = SunCalc.getMoonIllumination(now);
+      const moonTimes = SunCalc.getMoonTimes(now, position.coords.latitude, position.coords.longitude);
+
+      const illumination = (moonIllum.fraction * 100).toFixed(1);
+      const phaseDesc = getPhaseDescription(moonIllum.fraction);
+      const moonImg = getMoonImage(moonIllum.fraction, moonIllum.phase);
+
+      moonPhaseImg.style.backgroundImage = `url(${moonImg})`;
+      document.getElementById('illumination').textContent = illumination;
+      document.getElementById('azimuth').textContent = (moonPos.azimuth * 180 / Math.PI).toFixed(1);
+      document.getElementById('altitude').textContent = (moonPos.altitude * 180 / Math.PI).toFixed(1);
+      document.getElementById('rise').textContent = moonTimes.rise?.toLocaleTimeString('ko-KR') || '없음';
+      document.getElementById('set').textContent = moonTimes.set?.toLocaleTimeString('ko-KR') || '없음';
+      document.getElementById('description').textContent = phaseDesc;
     }
 
-    function getPhaseMeaning(phase) {
-      if (phase < 0.03 || phase > 0.97) return "새로운 시작을 준비하세요.";
-      if (phase < 0.25) return "기획의 씨악이 자라날 때입니다.";
-      if (phase < 0.48) return "건강과 개선의 시기입니다.";
-      if (phase < 0.52) return "풍요한 순간입니다.";
-      if (phase < 0.75) return "감소 및 복가의 시기입니다.";
-      return "정리와 만들수 있는 순간입니다.";
-    }
-
-    function getMoonGradient(phase) {
-      const deg = 180;
-      const ratio = (phase <= 0.5) ? phase * 2 : (1 - phase) * 2;
-      const pos = 50 + 50 * ratio;
-      if (phase <= 0.5) {
-        return `radial-gradient(circle at ${100 - pos}% center, #f7d046 60%, #000 60%)`;
-      } else {
-        return `radial-gradient(circle at ${pos}% center, #f7d046 60%, #000 60%)`;
-      }
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(updateMoonData, () => {
+        alert('위치 정보를 가져올 수 없습니다.');
+      });
+    } else {
+      alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
     }
   </script>
 </body>
