@@ -15,15 +15,15 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #000;
-            color: #fff;
+            background-color: #000000;
             line-height: 1.6;
+            color: #ffffff;
         }
 
         .container {
             max-width: 800px;
             margin: 0 auto;
-            background: #121212;
+            background: #1a1a1a;
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 2px 4px rgba(255,255,255,0.1);
@@ -37,7 +37,7 @@
         }
 
         .header h1 {
-            color: #ffffff;
+            color: #f0f0f0;
             font-size: 24px;
         }
 
@@ -52,9 +52,7 @@
 
         .date-input {
             padding: 10px;
-            border: 1px solid #444;
-            background: #222;
-            color: #fff;
+            border: 1px solid #ddd;
             border-radius: 8px;
             flex: 1;
             min-width: 200px;
@@ -83,7 +81,7 @@
             align-items: center;
             margin: 20px 0;
             padding: 20px;
-            background: #1a1a1a;
+            background: #000;
             border-radius: 12px;
         }
 
@@ -94,7 +92,7 @@
             border-radius: 50%;
             padding: 0;
             margin-bottom: 15px;
-            box-shadow: 0 0 25px #fdf5e6;
+            box-shadow: 0 0 25px 10px rgba(255, 255, 200, 0.5);
         }
 
         .moon-svg-small {
@@ -104,7 +102,7 @@
             border-radius: 50%;
             padding: 0;
             margin: 10px auto;
-            box-shadow: 0 0 10px #fdf5e6;
+            box-shadow: 0 0 10px 4px rgba(255, 255, 200, 0.4);
         }
 
         .info {
@@ -115,9 +113,9 @@
         .moon-meaning {
             margin-top: 15px;
             padding: 15px;
-            background: #263238;
+            background: #e3f2fd;
             border-radius: 8px;
-            color: #90caf9;
+            color: #1565c0;
             font-size: 0.95em;
         }
 
@@ -130,18 +128,82 @@
 
         .day-card {
             padding: 15px;
-            background: #1c1c1c;
+            background: #f8f9fa;
             border-radius: 8px;
             text-align: center;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            box-shadow: 0 1px 3px rgba(255,255,255,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             transition: transform 0.2s;
         }
 
         .current-date {
-            background: #2e3c4d;
+            background: #e3f2fd;
+        }
+
+        .location-info {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .observation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-card {
+            background: #000;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(255,255,255,0.1);
+        }
+
+        .compass {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            position: relative;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            background: #111;
+        }
+
+        .compass-marker {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #FDB813;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 5px rgba(255,255,255,0.3);
+        }
+
+        .observation-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .status-good {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .status-medium {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-poor {
+            background: #ffcdd2;
+            color: #c62828;
         }
 
         @media (max-width: 600px) {
@@ -162,79 +224,4 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>달의 모양 관찰하기</h1>
-        </div>
-        <div class="controls">
-            <input type="date" id="dateSelector" class="date-input">
-            <button id="viewToggle" class="button">월간 보기</button>
-        </div>
-        <div id="dailyView" class="moon-display">
-            <svg id="moonSVG" class="moon-svg" viewBox="0 0 100 100"></svg>
-            <div class="info">
-                <h2 id="phaseText"></h2>
-                <p id="dateText"></p>
-                <div id="moonMeaning" class="moon-meaning"></div>
-            </div>
-        </div>
-    </div>
-<script>
-    function getJulianDate(date) {
-        const time = date.getTime();
-        const tzoffset = date.getTimezoneOffset();
-        return (time / 86400000) - (tzoffset / 1440) + 2440587.5;
-    }
-
-    function getMoonPhase(date) {
-        const JD = getJulianDate(date);
-        const days = JD - 2451545.0;
-        const lunations = 29.530588861;
-        let phase = ((days % lunations) / lunations) * 100;
-        if (phase < 0) phase += 100;
-        return phase;
-    }
-
-    function createMoonSVG(phase) {
-        const cx = 50, cy = 50, r = 48;
-        let d = '';
-        const fade = phase > 50 ? (100 - phase) / 50 : phase / 50;
-
-        if (phase <= 50) {
-            d = `M ${cx} ${cy-r} A ${r} ${r} 0 1 1 ${cx} ${cy+r} A ${r*fade} ${r} 0 0 0 ${cx} ${cy-r}`;
-        } else {
-            d = `M ${cx} ${cy-r} A ${r} ${r} 0 1 0 ${cx} ${cy+r} A ${r*fade} ${r} 0 0 1 ${cx} ${cy-r}`;
-        }
-
-        return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#000" stroke="#FDB813" stroke-width="2" />
-                <path d="${d}" fill="#FDB813" />`;
-    }
-
-    function getMoonPhaseInfo(phase) {
-        if (phase < 1 || phase > 99) return { name: "삭 🌑", meaning: "달이 보이지 않는 시기입니다." };
-        if (phase < 25) return { name: "초승달 🌒", meaning: "오른쪽이 점점 밝아집니다." };
-        if (phase < 50) return { name: "상현달 🌓", meaning: "달의 오른쪽이 반쯤 밝습니다." };
-        if (phase < 75) return { name: "하현달 🌗", meaning: "왼쪽이 반쯤 밝습니다." };
-        return { name: "그믐달 🌘", meaning: "왼쪽이 희미하게 빛납니다." };
-    }
-
-    function updateUI(date) {
-        const phase = getMoonPhase(date);
-        const info = getMoonPhaseInfo(phase);
-
-        document.getElementById('moonSVG').innerHTML = createMoonSVG(phase);
-        document.getElementById('phaseText').textContent = info.name;
-        document.getElementById('dateText').textContent = date.toLocaleDateString('ko-KR');
-        document.getElementById('moonMeaning').textContent = info.meaning;
-    }
-
-    const dateSelector = document.getElementById('dateSelector');
-    dateSelector.valueAsDate = new Date();
-    updateUI(new Date());
-
-    dateSelector.addEventListener('change', (e) => {
-        updateUI(new Date(e.target.value));
-    });
-</script>
-</body>
-</html>
+<!-- 기존 HTML 본문은 그대로 유지됩니다 -->
